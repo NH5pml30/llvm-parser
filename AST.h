@@ -35,17 +35,23 @@ namespace AST
     template<typename... Ts>
     nullptr_t report_error(Ts &&... args)
     {
-      ((std::cerr << "Error at " << loc.line + 1 << ":" << loc.chr + 1 << ": ") << ... << args) << std::endl;
+      ((std::cerr << "Error at " << loc.line << ":" << loc.chr << ": ") << ... << args) << std::endl;
       return nullptr;
     }
   };
+
+  inline std::unique_ptr<Base> move_loc(std::unique_ptr<Base> arg, int line, int chr)
+  {
+    arg->loc = {line, chr};
+    return std::move(arg);
+  }
 
   class Number : public Base
   {
     double val;
 
   public:
-    Number(double val) : Base(CodeLoc{}), val(val) {}
+    Number(CodeLoc loc, double val) : Base(loc), val(val) {}
 
     llvm::Value *codegen() override;
   };
@@ -57,8 +63,8 @@ namespace AST
     std::unique_ptr<Base> val;
 
   public:
-    VariableAssign(std::string name, bool is_define, std::unique_ptr<Base> val = nullptr)
-        : Base(CodeLoc{}), name(std::move(name)), is_define(is_define), val(std::move(val))
+    VariableAssign(CodeLoc loc, std::string name, bool is_define, std::unique_ptr<Base> val = nullptr)
+        : Base(loc), name(std::move(name)), is_define(is_define), val(std::move(val))
     {
     }
 
@@ -70,8 +76,8 @@ namespace AST
     std::string name;
 
   public:
-    VariableRef(std::string name)
-        : Base(CodeLoc{}), name(std::move(name))
+    VariableRef(CodeLoc loc, std::string name)
+        : Base(loc), name(std::move(name))
     {
     }
 
@@ -95,7 +101,7 @@ namespace AST
 
   public:
     Binary(OP op, std::unique_ptr<Base> lhs, std::unique_ptr<Base> rhs)
-        : Base(CodeLoc{}), op(op), lhs(std::move(lhs)), rhs(std::move(rhs))
+        : Base(lhs->loc), op(op), lhs(std::move(lhs)), rhs(std::move(rhs))
     {
     }
 
@@ -116,7 +122,7 @@ namespace AST
     std::unique_ptr<Base> arg;
 
   public:
-    Unary(OP op, std::unique_ptr<Base> arg) : Base(CodeLoc{}), op(op), arg(std::move(arg))
+    Unary(OP op, std::unique_ptr<Base> arg) : Base(arg->loc), op(op), arg(std::move(arg))
     {
     }
 
@@ -128,7 +134,7 @@ namespace AST
     std::vector<std::unique_ptr<AST::Base>> stts;
 
   public:
-    Program(std::vector<std::unique_ptr<AST::Base>> stts) : stts(std::move(stts)) {}
+    Program(std::vector<std::unique_ptr<AST::Base>> stts) : Base(stts[0]->loc), stts(std::move(stts)) {}
 
     llvm::Value *codegen() override;
   };

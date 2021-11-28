@@ -7,7 +7,8 @@ int main()
   try
   {
     AST::Program parsed = LALR_parser().parse(std::cin);
-    parsed.codegen();
+    if (parsed.codegen() == nullptr)
+      return 1;
   }
   catch (std::exception &e)
   {

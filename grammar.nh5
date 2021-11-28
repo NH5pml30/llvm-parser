@@ -46,12 +46,12 @@ namespace
 		| Ss semicolon V	{ append($1, std::move($3)) }
 
 	V :: std::unique_ptr<AST::Base>
-		: var id assign S	{ std::make_unique<AST::VariableAssign>(std::move($2), true, std::move($4)) }
-		| var id					{ std::make_unique<AST::VariableAssign>(std::move($2), true) }
+		: var id assign S	{ std::make_unique<AST::VariableAssign>(AST::CodeLoc{$2.line, $2.chr}, std::move($2.as_string), true, std::move($4)) }
+		| var id					{ std::make_unique<AST::VariableAssign>(AST::CodeLoc{$2.line, $2.chr}, std::move($2.as_string), true) }
 		| S								{ std::move($1) }
 
 	S :: std::unique_ptr<AST::Base>
-		: id assign S	{ std::make_unique<AST::VariableAssign>(std::move($1), false, std::move($3)) }
+		: id assign S	{ std::make_unique<AST::VariableAssign>(AST::CodeLoc{$1.line, $1.chr}, std::move($1.as_string), false, std::move($3)) }
 		| E						{ std::move($1) }
 
 	E :: std::unique_ptr<AST::Base>
@@ -67,8 +67,8 @@ namespace
 	F :: std::unique_ptr<AST::Base>
 		: minus F		{ std::make_unique<AST::Unary>(AST::Unary::MINUS, std::move($2)) }
 		| plus F		{ std::make_unique<AST::Unary>(AST::Unary::PLUS, std::move($2)) }
-		| lp S rp		{ std::move($2) }
-		| id			{ std::make_unique<AST::VariableRef>(std::move($1)) }
-		| n				{ std::make_unique<AST::Number>(std::atof($1.c_str())) }
-		| d				{ std::make_unique<AST::Number>(std::atof($1.c_str())) }
+		| lp S rp		{ AST::move_loc(std::move($2), $1.line, $1.chr) }
+		| id			{ std::make_unique<AST::VariableRef>(AST::CodeLoc{$1.line, $1.chr}, std::move($1.as_string)) }
+		| n				{ std::make_unique<AST::Number>(AST::CodeLoc{$1.line, $1.chr}, std::atof($1.c_str())) }
+		| d				{ std::make_unique<AST::Number>(AST::CodeLoc{$1.line, $1.chr}, std::atof($1.c_str())) }
 }

@@ -109,6 +109,22 @@ private:
     return str.str();
   }
 
+  struct _pos_token
+  {
+    std::string as_string;
+    int line, chr;
+
+    operator std::string() &&
+    {
+      return std::move(as_string);
+    }
+
+    const char *c_str() const
+    {
+      return as_string.c_str();
+    }
+  };
+
 public:
   LALR_parser()
   {
@@ -128,7 +144,7 @@ public:
 
     _the_lexer.set_input(i);
 
-    using _work_data_type = std::variant<unsigned, std::string, AST::Program, AST::Program, std::vector<std::unique_ptr<AST::Base>>, std::unique_ptr<AST::Base>, std::unique_ptr<AST::Base>, std::unique_ptr<AST::Base>, std::unique_ptr<AST::Base>, std::unique_ptr<AST::Base>>;
+    using _work_data_type = std::variant<unsigned, _pos_token, AST::Program, AST::Program, std::vector<std::unique_ptr<AST::Base>>, std::unique_ptr<AST::Base>, std::unique_ptr<AST::Base>, std::unique_ptr<AST::Base>, std::unique_ptr<AST::Base>, std::unique_ptr<AST::Base>>;
     std::vector<_work_data_type> _work;
     _work.emplace_back(_work_data_type{std::in_place_index<0>, 0u});
 
@@ -142,7 +158,8 @@ public:
 
       std::visit(overloaded{[&](std::monostate) { _the_lexer.fail(_get_error_msg(_the_lexer.cur_token().token_id, _state)); },
                             [&](_shift_action _act) {
-                              _work.push_back(_work_data_type{std::in_place_index<1>, _the_lexer.cur_token().str});
+                              auto tok = _the_lexer.cur_token();
+                              _work.push_back(_work_data_type{std::in_place_index<1>, _pos_token{tok.str, tok.line, tok.chr}});
                               _work.push_back(_work_data_type{std::in_place_index<0>, _act.next_state});
                               _last_token_len = _the_lexer.cur_token().str.size();
                               _the_lexer.next_token();
@@ -220,7 +237,7 @@ public:
                                   _work.pop_back();
                                   auto $1 = std::get<1>(std::move(_work.back()));
                                   _work.pop_back();
-                                  $n = _work_data_type{std::in_place_index<5>, _attr_type3{ std::make_unique<AST::VariableAssign>(std::move($2), true, std::move($4)) }};
+                                  $n = _work_data_type{std::in_place_index<5>, _attr_type3{ std::make_unique<AST::VariableAssign>(AST::CodeLoc{$2.line, $2.chr}, std::move($2.as_string), true, std::move($4)) }};
                                   _lhs = 4;
                                   break;
                                 }
@@ -232,7 +249,7 @@ public:
                                   _work.pop_back();
                                   auto $1 = std::get<1>(std::move(_work.back()));
                                   _work.pop_back();
-                                  $n = _work_data_type{std::in_place_index<5>, _attr_type3{ std::make_unique<AST::VariableAssign>(std::move($2), true) }};
+                                  $n = _work_data_type{std::in_place_index<5>, _attr_type3{ std::make_unique<AST::VariableAssign>(AST::CodeLoc{$2.line, $2.chr}, std::move($2.as_string), true) }};
                                   _lhs = 4;
                                   break;
                                 }
@@ -256,7 +273,7 @@ public:
                                   _work.pop_back();
                                   auto $1 = std::get<1>(std::move(_work.back()));
                                   _work.pop_back();
-                                  $n = _work_data_type{std::in_place_index<6>, _attr_type4{ std::make_unique<AST::VariableAssign>(std::move($1), false, std::move($3)) }};
+                                  $n = _work_data_type{std::in_place_index<6>, _attr_type4{ std::make_unique<AST::VariableAssign>(AST::CodeLoc{$1.line, $1.chr}, std::move($1.as_string), false, std::move($3)) }};
                                   _lhs = 5;
                                   break;
                                 }
@@ -382,7 +399,7 @@ public:
                                   _work.pop_back();
                                   auto $1 = std::get<1>(std::move(_work.back()));
                                   _work.pop_back();
-                                  $n = _work_data_type{std::in_place_index<9>, _attr_type7{ std::move($2) }};
+                                  $n = _work_data_type{std::in_place_index<9>, _attr_type7{ AST::move_loc(std::move($2), $1.line, $1.chr) }};
                                   _lhs = 8;
                                   break;
                                 }
@@ -391,7 +408,7 @@ public:
                                   _work.pop_back();
                                   auto $1 = std::get<1>(std::move(_work.back()));
                                   _work.pop_back();
-                                  $n = _work_data_type{std::in_place_index<9>, _attr_type7{ std::make_unique<AST::VariableRef>(std::move($1)) }};
+                                  $n = _work_data_type{std::in_place_index<9>, _attr_type7{ std::make_unique<AST::VariableRef>(AST::CodeLoc{$1.line, $1.chr}, std::move($1.as_string)) }};
                                   _lhs = 8;
                                   break;
                                 }
@@ -400,7 +417,7 @@ public:
                                   _work.pop_back();
                                   auto $1 = std::get<1>(std::move(_work.back()));
                                   _work.pop_back();
-                                  $n = _work_data_type{std::in_place_index<9>, _attr_type7{ std::make_unique<AST::Number>(std::atof($1.c_str())) }};
+                                  $n = _work_data_type{std::in_place_index<9>, _attr_type7{ std::make_unique<AST::Number>(AST::CodeLoc{$1.line, $1.chr}, std::atof($1.c_str())) }};
                                   _lhs = 8;
                                   break;
                                 }
@@ -409,7 +426,7 @@ public:
                                   _work.pop_back();
                                   auto $1 = std::get<1>(std::move(_work.back()));
                                   _work.pop_back();
-                                  $n = _work_data_type{std::in_place_index<9>, _attr_type7{ std::make_unique<AST::Number>(std::atof($1.c_str())) }};
+                                  $n = _work_data_type{std::in_place_index<9>, _attr_type7{ std::make_unique<AST::Number>(AST::CodeLoc{$1.line, $1.chr}, std::atof($1.c_str())) }};
                                   _lhs = 8;
                                   break;
                                 }
