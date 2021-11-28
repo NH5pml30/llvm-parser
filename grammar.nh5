@@ -1,0 +1,74 @@
+{
+#include "../AST.h"
+
+namespace
+{
+  template<typename T>
+  std::vector<T> append(std::vector<T> &v, T &&t)
+  {
+    v.push_back(std::move(t));
+    return std::move(v);
+  }
+
+  template<typename T>
+  std::vector<T> singleton(T &&t)
+  {
+    std::vector<T> v;
+    v.push_back(std::move(t));
+    return v;
+  }
+}
+}
+
+%lexer {
+	ws				/\s+/--
+	var				/var/
+	id				/[a-zA-Z_][a-zA-Z_0-9]*/
+	d					/\d+\.\d+/
+	n					/\d+/
+	semicolon	/;/
+	assign		/=/
+	plus			/\+/
+	minus			/\-/
+	asterisk	/\*/
+	slash			/\//
+	lp				/\(/
+	rp				/\)/
+}
+
+%parser {
+	Module :: AST::Program
+		: Ss						{ std::move($1) }
+		| Ss semicolon	{ std::move($1) }
+
+	Ss :: std::vector<std::unique_ptr<AST::Base>>
+		: V								{ singleton(std::move($1)) }
+		| Ss semicolon V	{ append($1, std::move($3)) }
+
+	V :: std::unique_ptr<AST::Base>
+		: var id assign S	{ std::make_unique<AST::VariableAssign>(std::move($2), true, std::move($4)) }
+		| var id					{ std::make_unique<AST::VariableAssign>(std::move($2), true) }
+		| S								{ std::move($1) }
+
+	S :: std::unique_ptr<AST::Base>
+		: id assign S	{ std::make_unique<AST::VariableAssign>(std::move($1), false, std::move($3)) }
+		| E						{ std::move($1) }
+
+	E :: std::unique_ptr<AST::Base>
+		: E plus T	{ std::make_unique<AST::Binary>(AST::Binary::ADD, std::move($1), std::move($3)) }
+		| E minus T	{ std::make_unique<AST::Binary>(AST::Binary::SUB, std::move($1), std::move($3)) }
+		| T					{ std::move($1) }
+
+	T :: std::unique_ptr<AST::Base>
+		: T asterisk F	{ std::make_unique<AST::Binary>(AST::Binary::MUL, std::move($1), std::move($3)) }
+		| T slash F			{ std::make_unique<AST::Binary>(AST::Binary::DIV, std::move($1), std::move($3)) }
+		| F							{ std::move($1) }
+
+	F :: std::unique_ptr<AST::Base>
+		: minus F		{ std::make_unique<AST::Unary>(AST::Unary::MINUS, std::move($2)) }
+		| plus F		{ std::make_unique<AST::Unary>(AST::Unary::PLUS, std::move($2)) }
+		| lp S rp		{ std::move($2) }
+		| id			{ std::make_unique<AST::VariableRef>(std::move($1)) }
+		| n				{ std::make_unique<AST::Number>(std::atof($1.c_str())) }
+		| d				{ std::make_unique<AST::Number>(std::atof($1.c_str())) }
+}
